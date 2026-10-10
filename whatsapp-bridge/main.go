@@ -454,6 +454,8 @@ func handleMessage(client *whatsmeow.Client, messageStore *MessageStore, msg *ev
 	if err != nil {
 		logger.Warnf("Failed to store message: %v", err)
 	} else {
+		paNotify(paMessage{ID: msg.Info.ID, ChatJID: chatJID, Sender: sender, ChatName: name,
+			Content: content, Timestamp: msg.Info.Timestamp, IsFromMe: msg.Info.IsFromMe, MediaType: mediaType})
 		// Log message reception
 		timestamp := msg.Info.Timestamp.Format("2006-01-02 15:04:05")
 		direction := "←"
