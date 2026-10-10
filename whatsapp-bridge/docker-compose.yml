@@ -1,0 +1,18 @@
+services:
+  whatsapp-bridge:
+    build: .
+    container_name: whatsapp-bridge
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./store:/app/store
+    # Forward each new live message to pa-topics. The token is NOT stored in this file: pass it when starting:
+    #   (set -a; . ../../pa-nas/.env; set +a; PA_INGEST_TOKEN="$PA_TOKEN" docker compose up -d --build)
+    # Without PA_INGEST_TOKEN the app answers 401 and the bridge just logs 'pa ingest failed' (nothing is lost:
+    # pa-topics backfills from messages.db). Remove PA_INGEST_URL below to disable forwarding entirely.
+    environment:
+      - PA_INGEST_URL=http://host.docker.internal:8090/api/ingest
+      - PA_INGEST_TOKEN=${PA_INGEST_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
