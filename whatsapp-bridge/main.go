@@ -434,6 +434,12 @@ func handleMessage(client *whatsmeow.Client, messageStore *MessageStore, msg *ev
 		return
 	}
 
+	// Answer your own "Message yourself" chat with Hermes (even if the DB write below fails)
+	if hermesEnabled() && isFreshForHermes(msg.Info.Timestamp, time.Now()) &&
+		isHermesTrigger(msg.Info.Chat.User, ownUsers(client), msg.Info.IsFromMe, content) {
+		hermesHandle(client, chatJID, content)
+	}
+
 	// Store message in database
 	err = messageStore.StoreMessage(
 		msg.Info.ID,
@@ -454,8 +460,10 @@ func handleMessage(client *whatsmeow.Client, messageStore *MessageStore, msg *ev
 	if err != nil {
 		logger.Warnf("Failed to store message: %v", err)
 	} else {
-		paNotify(paMessage{ID: msg.Info.ID, ChatJID: chatJID, Sender: sender, ChatName: name,
-			Content: content, Timestamp: msg.Info.Timestamp, IsFromMe: msg.Info.IsFromMe, MediaType: mediaType})
+		if !skipPAIngest(hermesEnabled(), msg.Info.Chat.User, ownUsers(client), msg.Info.IsFromMe) {
+			paNotify(paMessage{ID: msg.Info.ID, ChatJID: chatJID, Sender: sender, ChatName: name,
+				Content: content, Timestamp: msg.Info.Timestamp, IsFromMe: msg.Info.IsFromMe, MediaType: mediaType})
+		}
 		// Log message reception
 		timestamp := msg.Info.Timestamp.Format("2006-01-02 15:04:05")
 		direction := "←"
